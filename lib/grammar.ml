@@ -1,9 +1,9 @@
 module Grammar = struct
-  open Ast
+  open Ast.Ast
 
   let ( let* ) = Result.bind
 
-  type grammar_branch = { ast : Ast.expr; prob : int }
+  type grammar_branch = { ast : expr; prob : int }
   type grammar_rule = grammar_branch array
   type grammar = (char, grammar_rule) Hashtbl.t
 
@@ -13,7 +13,7 @@ module Grammar = struct
 
   let branch_terminal (b : grammar_branch) : bool =
     match b.ast with
-    | Ast.UnOp (_, Comptime _)
+    | UnOp (_, Comptime _)
     | BinOp (_, Comptime _, _)
     | BinOp (_, _, Comptime _)
     | Comp (_, Comptime _, _)
@@ -52,13 +52,12 @@ module Grammar = struct
     in
     pick 0.0 0
 
-  let rec force_terminate (g : grammar) (rid : char) : (Ast.expr, string) result
-      =
+  let rec force_terminate (g : grammar) (rid : char) : (expr, string) result =
     match Hashtbl.find_opt g rid with
     | Some rule ->
         if all_terminal rule then Ok (pick_weighted rule).ast
         else
-          let rec find_terminal_branch i : (Ast.expr, string) result =
+          let rec find_terminal_branch i : (expr, string) result =
             if i >= Array.length rule then
               Error
                 (Printf.sprintf "Cannot find terminal path from rule %c" rid)
@@ -69,31 +68,31 @@ module Grammar = struct
                 match force_resolve_expr branch.ast with
                 | Ok ast -> Ok ast
                 | Error err -> Error err
-          and force_resolve_expr (e : Ast.expr) : (Ast.expr, string) result =
+          and force_resolve_expr (e : expr) : (expr, string) result =
             match e with
             | Comptime Random -> Ok (Const (Random.float 2.0 -. 1.0))
             | Comptime (Rule rid) -> force_terminate g rid
             | UnOp (op, a) ->
                 let* a = force_resolve_expr a in
-                Ok (Ast.UnOp (op, a))
+                Ok (UnOp (op, a))
             | BinOp (op, a, b) ->
                 let* a = force_resolve_expr a in
                 let* b = force_resolve_expr b in
-                Ok (Ast.BinOp (op, a, b))
+                Ok (BinOp (op, a, b))
             | Comp (op, a, b) ->
                 let* a = force_resolve_expr a in
                 let* b = force_resolve_expr b in
-                Ok (Ast.Comp (op, a, b))
+                Ok (Comp (op, a, b))
             | Ite (i, t, e) ->
                 let* i = force_resolve_expr i in
                 let* t = force_resolve_expr t in
                 let* e = force_resolve_expr e in
-                Ok (Ast.Ite (i, t, e))
+                Ok (Ite (i, t, e))
             | Triple (a, b, c) ->
                 let* a = force_resolve_expr a in
                 let* b = force_resolve_expr b in
                 let* c = force_resolve_expr c in
-                Ok (Ast.Triple (a, b, c))
+                Ok (Triple (a, b, c))
             | _ -> Ok e
           in
           find_terminal_branch 0
@@ -105,35 +104,35 @@ module Grammar = struct
     in
     let rec gen_node node depth =
       match node with
-      | Ast.Coord _ | Const _ | Bool _ -> Ok node
+      | Coord _ | Const _ | Bool _ -> Ok node
       | UnOp (op, opr) ->
           let* node = gen_node opr depth in
-          Ok (Ast.UnOp (op, node))
+          Ok (UnOp (op, node))
       | BinOp (op, lhs, rhs) ->
           let* lhs = gen_node lhs depth in
           let* rhs = gen_node rhs depth in
-          Ok (Ast.BinOp (op, lhs, rhs))
+          Ok (BinOp (op, lhs, rhs))
       | Comp (op, lhs, rhs) ->
           let* lhs = gen_node lhs depth in
           let* rhs = gen_node rhs depth in
-          Ok (Ast.Comp (op, lhs, rhs))
+          Ok (Comp (op, lhs, rhs))
       | Ite (i, t, e) ->
           let* i = gen_node i depth in
           let* t = gen_node t depth in
           let* e = gen_node e depth in
-          Ok (Ast.Ite (i, t, e))
+          Ok (Ite (i, t, e))
       | Triple (a, b, c) ->
           let* a = gen_node a depth in
           let* b = gen_node b depth in
           let* c = gen_node c depth in
-          Ok (Ast.Triple (a, b, c))
+          Ok (Triple (a, b, c))
       | Comptime operation -> (
           match operation with
           | Random -> Ok (Const (Random.float 2.0 -. 1.0))
           | Rule r ->
               let* rule = gen_rule r (depth - 1) in
               Ok rule)
-    and gen_rule rid depth : (Ast.expr, string) result =
+    and gen_rule rid depth : (expr, string) result =
       if depth <= 0 then
         let* final = force_terminate g rid in
         Ok final
@@ -143,7 +142,8 @@ module Grammar = struct
         gen_node branch (depth - 1)
     in
     let* output = gen_rule start max_depth in
-    let temp_eval = Ast.eval output 0.0 0.0 in
+    let* output = gen_node output max_depth in
+    let temp_eval = eval output 0.0 0.0 in
     match temp_eval with
     | Triple (Const _, Const _, Const _) | Const _ | Bool _ -> Ok output
     | _ ->
@@ -156,7 +156,8 @@ module Grammar = struct
         acc
         ^ Printf.sprintf "Rule %c with %d branches:\n%s\n" k (Array.length v)
             (Array.fold_left
-               (fun acc { prob; ast } -> acc ^ (Printf.sprintf "\t %d -> %s\n" prob (Ast.string_of_expr ast)))
+               (fun acc { prob; ast } ->
+                 acc ^ Printf.sprintf "\t %d -> %s\n" prob (string_of_expr ast))
                "" v))
       g ""
 end

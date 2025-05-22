@@ -1,4 +1,5 @@
 (library
  (name randomart)
  (libraries imagelib imagelib.unix domainslib)
- (modes native))
+ (flags (:standard -no-g))
+ (ocamlopt_flags (:standard -O3)))

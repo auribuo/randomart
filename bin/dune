@@ -2,5 +2,5 @@
  (public_name randomart)
  (name main)
  (libraries randomart imagelib imagelib.unix domainslib)
- (flags (:standard))
-)
+ (flags (:standard -no-g))
+ (ocamlopt_flags (:standard -O3)))

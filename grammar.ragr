@@ -1,3 +1,22 @@
-E | (C, C, C);
-A || rng | x | y;
-C || A ||| C + C ||| C * C;
+# Entrypoint
+E | (C * 0.9 + rng, B * rng, D * rng);
+
+A || rng
+  | x
+  | y;
+
+C | A 
+  | C + C 
+  || B * C 
+  ||| B / C % rng 
+  | (A + B - C) * rng;
+
+B | x + rng + y 
+  | (sin(D) + cos(A)) 
+  | C / -(A) 
+  | A * D;
+
+D | B * C 
+  | rng + B 
+  |||| D * B 
+  || C % (if (sin(x) > rng {A} else {y * B}));

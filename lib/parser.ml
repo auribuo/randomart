@@ -311,19 +311,25 @@ end = struct
     let$ _ = parse_ws in
     pure (List.length bars)
 
+  let parse_comment = parse_char '#' *> as_long_not is_any '\n' "?" <|> pure []
+
   let parse_expr =
     as_long (fun c -> c <> ';' && c <> '|') "lowercase expression" |> token
 
   let parse_branch =
    fun input ->
+    let* _, input = token parse_comment input in
     let* prob, input = parse_bars input in
+    let* _, input = token parse_comment input in
     let* expr, input = parse_expr input in
+    let* _, input = token parse_comment input in
     let* body, _ = ExprParser.parse_expr (input_from expr input) in
     pure (prob, body) input
 
   let parse_rule =
+    let$ _ = token parse_comment in
     let$ name = token (expect is_upper "uppercase identifier") in
-    let$ opt_branches = more parse_branch  <* parse_char ';' in
+    let$ opt_branches = more parse_branch <* parse_char ';' in
     pure (name, opt_branches)
 
   let check_parens input =
@@ -340,7 +346,7 @@ end = struct
           | '{' -> check rest ((c, input.pos) :: state)
           | '}' -> (
               match state with
-              | ('}', _) :: state' -> check rest state'
+              | ('{', _) :: state' -> check rest state'
               | _ :: _ -> fail_at "Mismatched closing paren" input.pos
               | [] -> fail_at "Closing paren has no opening paren" input.pos)
           | _ -> check rest state)

@@ -115,8 +115,12 @@ module Ast = struct
         | _, _, _ ->
             raise (SyntaxError "ITE condition does not evaluate to Condition"))
     | Triple (a, b, c) -> Triple (eval a x y, eval b x y, eval c x y)
-    | Comptime _ ->
-        raise (SyntaxError "Encountered comptime element during evaluation")
+    | Comptime c ->
+        let instr =
+          match c with Random -> "rng" | Rule r -> Printf.sprintf "Rule(%c)" r
+        in
+        raise
+          (SyntaxError ("Encountered Comptime " ^ instr ^ " during evaluation"))
 
   let rec optimise (ast : expr) : expr =
     match ast with
@@ -165,8 +169,14 @@ module Ast = struct
       | Comp (op, a, b) -> Comp (op, substitute a, substitute b)
       | Ite (i, t, e) -> Ite (substitute i, substitute t, substitute e)
       | Triple (a, b, c) -> Triple (substitute a, substitute b, substitute c)
-      | Comptime _ ->
-          raise (SyntaxError "Encountered Comptime during evaluation")
+      | Comptime c ->
+          let instr =
+            match c with
+            | Random -> "rng"
+            | Rule r -> Printf.sprintf "Rule(%c)" r
+          in
+          raise
+            (SyntaxError ("Encountered Comptime " ^ instr ^ " during partial evaluation"))
     in
     substitute ast |> optimise
 
