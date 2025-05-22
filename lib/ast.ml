@@ -5,7 +5,7 @@ module Ast = struct
   type binary_op = Add | Sub | Mul | Div | Mod
   type logic_op = Gt | Gte | Lt | Lte | Eq
   type coordinate = X | Y
-  type compile = Random | Rule of int
+  type compile = Random | Rule of char
 
   type expr =
     | Const of number
@@ -64,7 +64,7 @@ module Ast = struct
         Printf.sprintf "(%s, %s, %s)" (string_of_expr a) (string_of_expr b)
           (string_of_expr c)
     | Comptime op -> (
-        match op with Random -> "rng" | Rule r -> Printf.sprintf "rule(%d)" r)
+        match op with Random -> "rng" | Rule r -> Printf.sprintf "rule(%c)" r)
 
   let rec eval (ast : expr) (x : float) (y : float) : expr =
     match ast with

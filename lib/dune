@@ -1,3 +1,4 @@
 (library
  (name randomart)
+ (libraries imagelib imagelib.unix domainslib)
  (modes native))
